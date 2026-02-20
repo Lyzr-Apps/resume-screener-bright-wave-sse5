@@ -183,9 +183,13 @@ async function submitTask(body: any) {
     session_id: finalSessionId,
   }
 
-  if (assets && assets.length > 0) {
+  if (assets && Array.isArray(assets) && assets.length > 0) {
+    // Send as both 'assets' and 'asset_ids' to cover all Lyzr API versions
     payload.assets = assets
+    payload.asset_ids = assets
   }
+
+  console.log('Submitting task to Lyzr:', JSON.stringify(payload))
 
   const submitRes = await fetch(LYZR_TASK_URL, {
     method: 'POST',

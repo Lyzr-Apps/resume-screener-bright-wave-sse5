@@ -60,27 +60,71 @@ export async function POST(request: NextRequest) {
 
     if (response.ok) {
       const data = await response.json()
+      console.log('Lyzr upload raw response:', JSON.stringify(data))
 
-      const uploadedFiles = (data.results || []).map((r: any) => ({
-        asset_id: r.asset_id || '',
-        file_name: r.file_name || '',
-        success: r.success ?? true,
-        error: r.error,
-      }))
+      // Handle multiple possible response formats from Lyzr upload API
+      let uploadedFiles: any[] = []
+
+      // Format 1: { results: [{ asset_id, file_name, success }] }
+      if (Array.isArray(data.results) && data.results.length > 0) {
+        uploadedFiles = data.results.map((r: any) => ({
+          asset_id: r.asset_id || r.id || '',
+          file_name: r.file_name || r.filename || r.name || '',
+          success: r.success ?? true,
+          error: r.error,
+        }))
+      }
+      // Format 2: { files: [{ asset_id, ... }] }
+      else if (Array.isArray(data.files) && data.files.length > 0) {
+        uploadedFiles = data.files.map((r: any) => ({
+          asset_id: r.asset_id || r.id || '',
+          file_name: r.file_name || r.filename || r.name || '',
+          success: r.success ?? true,
+          error: r.error,
+        }))
+      }
+      // Format 3: { asset_id: "single-id" } (single file response)
+      else if (data.asset_id) {
+        uploadedFiles = [{
+          asset_id: data.asset_id,
+          file_name: data.file_name || data.filename || '',
+          success: true,
+        }]
+      }
+      // Format 4: { id: "single-id" }
+      else if (data.id) {
+        uploadedFiles = [{
+          asset_id: data.id,
+          file_name: data.file_name || data.filename || '',
+          success: true,
+        }]
+      }
+      // Format 5: Array at top level [{ asset_id, ... }]
+      else if (Array.isArray(data) && data.length > 0) {
+        uploadedFiles = data.map((r: any) => ({
+          asset_id: r.asset_id || r.id || '',
+          file_name: r.file_name || r.filename || r.name || '',
+          success: r.success ?? true,
+          error: r.error,
+        }))
+      }
 
       const assetIds = uploadedFiles
         .filter((f: any) => f.success && f.asset_id)
         .map((f: any) => f.asset_id)
 
+      console.log('Extracted asset_ids:', assetIds)
+
       return NextResponse.json({
-        success: true,
+        success: assetIds.length > 0,
         asset_ids: assetIds,
         files: uploadedFiles,
         total_files: data.total_files || files.length,
         successful_uploads: data.successful_uploads || assetIds.length,
-        failed_uploads: data.failed_uploads || 0,
-        message: `Successfully uploaded ${assetIds.length} file(s)`,
+        failed_uploads: data.failed_uploads || (assetIds.length === 0 ? files.length : 0),
+        message: assetIds.length > 0 ? `Successfully uploaded ${assetIds.length} file(s)` : 'Upload succeeded but no asset IDs returned',
         timestamp: new Date().toISOString(),
+        raw_response: data,
       })
     } else {
       const errorText = await response.text()

@@ -856,26 +856,85 @@ export default function Page() {
 
     try {
       // Step 1: Upload the file
+      console.log('[ResumeScreener] Uploading file:', selectedFile.name, selectedFile.size)
       const uploadResult = await uploadFiles(selectedFile)
+      console.log('[ResumeScreener] Upload result:', JSON.stringify(uploadResult))
 
-      if (!uploadResult.success || uploadResult.asset_ids.length === 0) {
-        setErrorMessage(uploadResult.error ?? 'File upload failed. Please try again.')
+      if (!uploadResult.success || !Array.isArray(uploadResult.asset_ids) || uploadResult.asset_ids.length === 0) {
+        const errMsg = uploadResult.error
+          ?? (uploadResult.asset_ids?.length === 0 ? 'Upload succeeded but no asset IDs were returned. Please try again.' : 'File upload failed. Please try again.')
+        setErrorMessage(errMsg)
         setIsScreening(false)
         setActiveAgentId(null)
         return
       }
 
-      // Step 2: Call the agent with the uploaded file
+      console.log('[ResumeScreener] Asset IDs for agent:', uploadResult.asset_ids)
+
+      // Step 2: Call the agent with the uploaded file assets
       const result: AIAgentResponse = await callAIAgent(
         'Screen this resume against the Platform Engineer job description. Evaluate skills match, experience, and qualifications. If the candidate is a fit, send an email summary to shreyas+bot@lyzr.ai via Gmail.',
         AGENT_ID,
         { assets: uploadResult.asset_ids }
       )
+      console.log('[ResumeScreener] Agent result:', JSON.stringify(result))
 
       if (result.success) {
-        const data = result?.response?.result as ScreeningResult | undefined
+        // Try multiple access patterns for the response data
+        let data: ScreeningResult | undefined
 
-        if (data) {
+        // Primary: result.response.result (standard normalized response)
+        if (result?.response?.result && typeof result.response.result === 'object' && Object.keys(result.response.result).length > 0) {
+          // Check if the data is nested under a 'result' key within result
+          const inner = result.response.result as any
+          if (inner.candidate_name || inner.fit_status) {
+            data = inner as ScreeningResult
+          } else if (inner.result && typeof inner.result === 'object' && (inner.result.candidate_name || inner.result.fit_status)) {
+            data = inner.result as ScreeningResult
+          } else if (inner.text && typeof inner.text === 'string') {
+            // Agent might have returned JSON as a text string
+            try {
+              const parsed = JSON.parse(inner.text)
+              if (parsed.candidate_name || parsed.fit_status || parsed.result) {
+                data = parsed.result ?? parsed
+              }
+            } catch {
+              // Not JSON text, fall through
+            }
+          } else {
+            // Use whatever is there
+            data = inner as ScreeningResult
+          }
+        }
+
+        // Fallback: check result.response.message for JSON string
+        if (!data && result?.response?.message && typeof result.response.message === 'string') {
+          try {
+            const parsed = JSON.parse(result.response.message)
+            if (parsed.candidate_name || parsed.fit_status || parsed.result) {
+              data = parsed.result ?? parsed
+            }
+          } catch {
+            // Not JSON
+          }
+        }
+
+        // Fallback: check raw_response
+        if (!data && result?.raw_response && typeof result.raw_response === 'string') {
+          try {
+            const rawParsed = JSON.parse(result.raw_response)
+            const deepResult = rawParsed?.response?.result ?? rawParsed?.result ?? rawParsed
+            if (deepResult?.candidate_name || deepResult?.fit_status) {
+              data = deepResult as ScreeningResult
+            }
+          } catch {
+            // Not parseable
+          }
+        }
+
+        console.log('[ResumeScreener] Parsed screening data:', JSON.stringify(data))
+
+        if (data && (data.candidate_name || data.fit_status)) {
           setScreeningResult(data)
 
           // Add to history
@@ -889,12 +948,14 @@ export default function Page() {
           }
           setHistory((prev) => [entry, ...prev])
         } else {
-          setErrorMessage('Unexpected response format from agent.')
+          console.error('[ResumeScreener] Could not parse screening data from response:', result)
+          setErrorMessage('Unexpected response format from agent. Check console for details.')
         }
       } else {
         setErrorMessage(result.error ?? 'Agent screening failed. Please try again.')
       }
     } catch (err) {
+      console.error('[ResumeScreener] Error:', err)
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.')
     } finally {
       setIsScreening(false)
