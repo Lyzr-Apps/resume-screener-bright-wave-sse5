@@ -304,12 +304,17 @@ async function pollTask(task_id: string) {
 
   const normalized = normalizeResponse(toNormalize)
 
+  // Sanitize raw response to strip any API keys from S3 URLs
+  const sanitizedRaw = rawText
+    ? rawText.replace(/sk-[a-zA-Z0-9_-]+/g, 'sk-***')
+    : rawText
+
   return NextResponse.json({
     success: true,
     status: 'completed',
     response: normalized,
     module_outputs: moduleOutputs,
     timestamp: new Date().toISOString(),
-    raw_response: rawText,
+    raw_response: sanitizedRaw,
   })
 }

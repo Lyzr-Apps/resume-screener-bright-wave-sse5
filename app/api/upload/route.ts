@@ -115,16 +115,23 @@ export async function POST(request: NextRequest) {
 
       console.log('Extracted asset_ids:', assetIds)
 
+      // Sanitize uploaded files to remove any URLs that might contain API keys
+      const sanitizedFiles = uploadedFiles.map((f: any) => ({
+        asset_id: f.asset_id,
+        file_name: f.file_name,
+        success: f.success,
+        error: f.error,
+      }))
+
       return NextResponse.json({
         success: assetIds.length > 0,
         asset_ids: assetIds,
-        files: uploadedFiles,
+        files: sanitizedFiles,
         total_files: data.total_files || files.length,
         successful_uploads: data.successful_uploads || assetIds.length,
         failed_uploads: data.failed_uploads || (assetIds.length === 0 ? files.length : 0),
         message: assetIds.length > 0 ? `Successfully uploaded ${assetIds.length} file(s)` : 'Upload succeeded but no asset IDs returned',
         timestamp: new Date().toISOString(),
-        raw_response: data,
       })
     } else {
       const errorText = await response.text()
