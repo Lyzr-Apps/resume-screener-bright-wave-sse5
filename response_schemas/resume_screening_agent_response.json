@@ -1,0 +1,68 @@
+{
+  "agent_name": "Resume Screening Agent",
+  "agent_id": "6997e0e382553f2b07a0dc97",
+  "description": "Evaluates uploaded resumes against the Platform Engineer JD criteria. Analyzes skills, experience, and qualifications match. If candidate fits, composes and sends an email summary to shreyas+bot@lyzr.ai via Gmail. Displays the full assessment on screen regardless of fit.",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "result": {
+      "candidate_name": "string",
+      "fit_status": "string",
+      "overall_score": "number",
+      "skills_match": {
+        "matched_skills": [
+          "string"
+        ],
+        "missing_skills": [
+          "string"
+        ],
+        "score": "number"
+      },
+      "experience_evaluation": {
+        "summary": "string",
+        "years_relevant": "string",
+        "score": "number"
+      },
+      "nice_to_haves": {
+        "matched": [
+          "string"
+        ],
+        "score": "number"
+      },
+      "recommendation": "string",
+      "email_sent": "boolean",
+      "email_summary": "string"
+    }
+  },
+  "example_response": {
+    "result": {
+      "candidate_name": "Full name of the candidate extracted from the resume",
+      "fit_status": "Whether the candidate fits the JD: fit or not_fit",
+      "overall_score": 0,
+      "skills_match": {
+        "matched_skills": [
+          "sample string"
+        ],
+        "missing_skills": [
+          "sample string"
+        ],
+        "score": 0
+      },
+      "experience_evaluation": {
+        "summary": "Detailed summary of the candidate's relevant experience",
+        "years_relevant": "Estimated years of relevant experience",
+        "score": 0
+      },
+      "nice_to_haves": {
+        "matched": [
+          "sample string"
+        ],
+        "score": 0
+      },
+      "recommendation": "Detailed recommendation text explaining the fit assessment",
+      "email_sent": false,
+      "email_summary": "Summary of the email sent or reason no email was sent"
+    }
+  }
+}
