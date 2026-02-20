@@ -584,7 +584,7 @@ export default function Page() {
                   <FiFileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold tracking-tight">Resume Screener</h1>
+                  <h1 className="text-lg font-semibold tracking-tight">Lyzr Architect Resume Screener</h1>
                   <p className="text-xs text-muted-foreground -mt-0.5">Platform Engineer Position</p>
                 </div>
               </div>
