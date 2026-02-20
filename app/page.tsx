@@ -748,7 +748,7 @@ export default function Page() {
 
             {/* Right Panel: Results */}
             <div className="lg:col-span-3">
-              <Card className="border border-border/60 shadow-md bg-white/90 backdrop-blur-md min-h-[500px]">
+              <Card className="border border-border/60 shadow-md bg-white/90 backdrop-blur-md">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <FiUser className="w-4 h-4 text-primary" />
@@ -773,9 +773,7 @@ export default function Page() {
                       <LoadingSkeleton />
                     </div>
                   ) : screeningResult ? (
-                    <ScrollArea className="max-h-[calc(100vh-220px)]">
-                      <ResultsDisplay data={screeningResult} />
-                    </ScrollArea>
+                    <ResultsDisplay data={screeningResult} />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                       <div className="p-4 rounded-full bg-muted mb-4">
